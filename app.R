@@ -111,7 +111,7 @@ my_leg_band_function <- function(input_df,
     return(NULL)
   }
   
-  # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
   # 3. LEG BAND PARSER (Preserves original row count)
   # ------------------------------------------------------------------------------
   parse_leg_bands <- function(df) {
@@ -124,11 +124,44 @@ my_leg_band_function <- function(input_df,
     left_col  <- col_names[str_detect(col_names, regex_left_hdr)][1]
     right_col <- col_names[str_detect(col_names, regex_right_hdr)][1]
     
+    
+    clean_band_color <- function(color_vec) {
+      
+      # Regex for color names
+      color_pattern <- "(?i)\\b[a-z]{3,}\\b" #simple search for any color word
+      
+      sapply(color_vec, function(val) {
+        if (is.na(val) || str_trim(val) == "") return(NA_character_)
+        
+        # REMOVE ACCENTS / DIACRITICS (e.g., 'dunkelgrün' -> 'dunkelgrun', 'bleu foncé' -> 'bleu fonce')
+        clean_val <- stringi::stri_trans_general(val, "Latin-ASCII")
+        
+        # Clean up leading 'L:', 'R:', 'links:', 'rechts:' residual prefixes if present
+        clean_val <- str_remove(clean_val, "(?i)^\\b(left|right|links|rechts|gauge|droit|[lrgd])\\b[:\\s=-]*")
+        
+        # Case 1 & 2: Contains a recognizable color word (with or without index)
+        extracted_color <- str_extract(clean_val, color_pattern)[1] #in case more than one match
+        
+        if (!is.na(extracted_color)) {
+          return(tolower(extracted_color)) # Returns 'braun' from 'braun TaI'
+        }
+        
+        # Case 3: Metal ring with code/numbers and no explicit color name
+        # Checks if string contains numbers or alphanumeric code characters
+        if (str_detect(clean_val, "[0-9A-Z]")) {
+          return("gray")
+        }
+        
+        return(clean_val) # Fallback for unknown entries
+      }, USE.NAMES = FALSE)
+    }
+    
+    
     # Case A: Two distinct leg columns exist
     if (!is.na(left_col) && !is.na(right_col)) {
       return(data.frame(
-        left_leg  = df[[left_col]],
-        right_leg = df[[right_col]],
+        Left  = clean_band_color(df[[left_col]]),
+        Right = clean_band_color(df[[right_col]]),
         stringsAsFactors = FALSE
       ))
     }
@@ -173,38 +206,6 @@ my_leg_band_function <- function(input_df,
       right_vals[right_vals == ""] <- NA_character_
     }
     
-    
-    clean_band_color <- function(color_vec) {
-      
-      # Regex for color names
-      color_pattern <- "(?i)\\b[a-z]{3,}\\b" #simple search for any color word
-      
-      sapply(color_vec, function(val) {
-        if (is.na(val) || str_trim(val) == "") return(NA_character_)
-        
-        # REMOVE ACCENTS / DIACRITICS (e.g., 'dunkelgrün' -> 'dunkelgrun', 'bleu foncé' -> 'bleu fonce')
-        clean_val <- stringi::stri_trans_general(val, "Latin-ASCII")
-        
-        # Clean up leading 'L:', 'R:', 'links:', 'rechts:' residual prefixes if present
-        clean_val <- str_remove(clean_val, "(?i)^\\b(left|right|links|rechts|gauge|droit|[lrgd])\\b[:\\s=-]*")
-        
-        # Case 1 & 2: Contains a recognizable color word (with or without index)
-        extracted_color <- str_extract(clean_val, color_pattern)[1] #in case more than one match
-        
-        if (!is.na(extracted_color)) {
-          return(tolower(extracted_color)) # Returns 'braun' from 'braun TaI'
-        }
-        
-        # Case 3: Metal ring with code/numbers and no explicit color name
-        # Checks if string contains numbers or alphanumeric code characters
-        if (str_detect(clean_val, "[0-9A-Z]")) {
-          return("gray")
-        }
-        
-        return(clean_val) # Fallback for unknown entries
-      }, USE.NAMES = FALSE)
-    }
-    
     left_vals  <- clean_band_color(left_vals)
     right_vals <- clean_band_color(right_vals)
     
@@ -214,6 +215,7 @@ my_leg_band_function <- function(input_df,
       stringsAsFactors = FALSE
     ))
   }
+
   
   # ------------------------------------------------------------------------------
   # 4. MAIN USER DATA PIPELINE
