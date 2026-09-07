@@ -242,12 +242,12 @@ my_leg_band_function <- function(input_df,
         
         # Fehlende Matches (NA) mit "U" auffüllen
         sex <- as.character(ifelse(is.na(sex), "Unde.", sex))
-        } else {sex = rep(NA_character_, nrow(raw_df))}
+        } else {sex = rep("Unde.", nrow(raw_df))}
     
     leg_df <- parse_leg_bands(raw_df)
     
     clean_df <- data.frame(
-      id        = if (!is.null(id_col)) raw_df[[id_col]] else rep(NA_character_, nrow(raw_df)),
+      id        = if (!is.null(id_col)) raw_df[[id_col]] else paste0("ID ", 1:nrow(raw_df)),
       sex       = sex,
       Left  = get_english_colors(leg_df$Left),
       Right = get_english_colors(leg_df$Right),
@@ -695,7 +695,8 @@ ui <- fluidPage(
             tags$li(tags$b("Existing Registry Check:"), " Scans currently used combinations in your uploaded file to calculate as different as possible combinations."),
             tags$li(tags$b("Recommendations:"), " The program returns a defined number of new combinations. These combinations have been calculated by their color-collision risk. Lower scores represent safer color pairings. Important, chose only one ofthese combinations for the next bird to mark. Calculate new colors everytime for new birds.")
           ),
-          p(em("Upload your file on the left panel, select wheter the combinations should be calculated for male, female, or any new bird. The program will assume all colors available have already been used on the current birds. If not, you can optionally add new colors, or name colors that should be excluded from the calculations. Then click 'Generate Combinations' to start.")),
+          p(em("Upload your file by drag+drop on the left-hand side. Guidelines regarding the upload file see below. Then select wheter the combinations should be calculated for male, female, or any new bird. The program will assume all colors available have already been used on the current birds. If not, you can optionally add new colors, or name colors that should be excluded from the calculations. Then click 'Generate Combinations' to start.")),
+          p(em("Guidelines for Upload file: At least one column stating bird leg band colors in use (with side left/right indication). This column must have a header. Data can i.e. be: 'L: green, R: red' or 'left:black/right:yellow' or 'black/yellow' or many other possibilities. Alternatively the informations can be split to two columns, where columns are labelled with left/right indications. Additionally the file can optionally contain columns with bird sex or bird ID information (GAN or local IDs). Other additional columns can be present as well and will be ignored, i.e. any file that contains the mentionned required data can be used without preparation. Tolerated file types: xlsx (recommened), xls, csv, tsv, txt")),
           
           # ------------------------------------------------------------------------
           # Demo Data Button
